@@ -72,6 +72,7 @@
         <div class="stock" id="cls">Celestica Inc (CLS): Loading...</div>
         <div class="stock" id="zbh">Zimmer Biomet (ZBH): Loading...</div>
         <div class="stock" id="C3AI">C3.AI (C3.AI): Loading...</div>
+        <div class="stock" id="idr">Indra (IDR): Loading...</div>
         <div class="stock" id="btc">Bitcoin (BTC): Loading...</div>
         <div class="footer" id="footer">Date retrieved...</div>
     </div>
@@ -92,6 +93,10 @@
                 const c3aiData = await responsec.json();
                 const c3aiPrice = c3aiData.results[0].c;
 
+                const responsed = await fetch('https://api.polygon.io/v2/aggs/ticker/IDR/prev?apiKey=B5LKsqlrqyoqq_BaFG59ogy51p9rK_ie');
+                const indraData = await responsec.json();
+                const indraPrice = indraData.results[0].c;
+
                 const response3 = await fetch('https://api.polygon.io/v2/aggs/ticker/X:BTCUSD/prev?apiKey=B5LKsqlrqyoqq_BaFG59ogy51p9rK_ie');
                 const btcData = await response3.json();
                 const btcPrice = btcData.results[0].c;
@@ -99,6 +104,7 @@
                 document.getElementById('cls').innerText = `Celestica Inc (CLS): ${clsPrice} USD`;
                 document.getElementById('zbh').innerText = `Zimmer Biomet (ZBH): ${zbhPrice} USD`;
                 document.getElementById('C3AI').innerText = `C3.AI (AI): ${c3aiPrice} USD`;
+                document.getElementById('idr').innerText = `Indra (IDR): ${indraPrice} EUR`;
                 document.getElementById('btc').innerText = `Bitcoin (BTC): ${btcPrice} USD`;
                 document.getElementById('footer').innerText = `Data retrieved: ${d} from Polygon.io`;
 
