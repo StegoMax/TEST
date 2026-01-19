@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Dashboard Pro</title>
+    <title>Mi Dashboard Pro - Stock & Crypto Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -48,7 +48,7 @@
             right: 0;
             top: 115%;
             width: 240px;
-            z-index: 9999; 
+            z-index: 10000;
         }
         .dropdown-menu.active {
             display: block;
@@ -73,11 +73,11 @@
 </head>
 <body class="text-white font-sans antialiased p-4 md:p-8">
 
-    <!-- MAIN APP -->
+    <!-- APLICACIÓN PRINCIPAL -->
     <main id="appContent" class="max-w-6xl mx-auto space-y-6 opacity-0 transition-opacity duration-700">
         
-        <!-- HEADER & TIMELINE -->
-        <header class="glass p-6">
+        <!-- CABECERA Y LÍNEA DE TIEMPO -->
+        <header class="glass p-6 relative z-[50]">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                 <div>
                     <h1 id="greeting" class="text-3xl font-bold">¡Hola!</h1>
@@ -89,7 +89,7 @@
                 
                 <div class="mt-4 md:mt-0 flex flex-wrap gap-2 relative">
                     <button onclick="fetchAllPrices()" class="text-xs bg-white/10 p-2 px-3 rounded hover:bg-white/20 transition-all border border-white/5" title="Actualizar Precios">
-                        <i class="fas fa-sync-alt"></i>
+                        <i id="syncIcon" class="fas fa-sync-alt"></i>
                     </button>
                     
                     <button onclick="exportData()" class="text-xs bg-blue-600/30 p-2 px-3 rounded hover:bg-blue-600/50 transition-all border border-blue-500/20" title="Guardar Copia de Seguridad">
@@ -105,7 +105,7 @@
                         <i class="fas fa-cog mr-1"></i> Ajustes
                     </button>
                     
-                    <div id="settingsDropdown" class="dropdown-menu glass p-5 shadow-2xl border-white/30 bg-black/60">
+                    <div id="settingsDropdown" class="dropdown-menu glass p-5 shadow-2xl border-white/30 bg-black/80">
                         <div class="mb-4">
                             <p class="text-[10px] uppercase font-bold text-white/40 mb-2 tracking-widest">Mensaje</p>
                             <input type="text" id="userNameEdit" oninput="updateName(this.value)" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded focus:border-blue-500 outline-none" placeholder="Tu mensaje...">
@@ -145,8 +145,8 @@
             </div>
         </header>
 
-        <!-- PRODUCTIVITY SECTION -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- SECCIÓN PRODUCTIVIDAD -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
             <section class="glass p-6 flex flex-col h-[400px]">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2 uppercase text-xs tracking-widest opacity-80">
                     <i class="fas fa-list-ul text-green-400"></i> Objetivos Diarios
@@ -166,11 +166,11 @@
             </section>
         </div>
 
-        <!-- INVESTMENTS DASHBOARD -->
-        <section class="glass p-6">
+        <!-- PANEL DE INVERSIONES -->
+        <section class="glass p-6 relative z-0">
             <div class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold">Cartera <span class="text-[10px] opacity-40 font-normal ml-2 uppercase tracking-widest">(Precios a tiempo real)</span></h2>
+                    <h2 class="text-xl font-bold">Cartera <span class="text-[10px] opacity-40 font-normal ml-2 uppercase tracking-widest">(Precios Yahoo/Coingecko)</span></h2>
                     <button onclick="togglePrivacy()" id="privacyBtn" class="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all">
                         <i id="privacyIcon" class="fas fa-eye-slash"></i>
                     </button>
@@ -187,8 +187,8 @@
                     <p id="portfolioStats" class="text-[10px] text-blue-400/80 uppercase font-bold"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-green-500 loading-pulse"></div>
-                    <p class="text-[9px] text-white/40 uppercase tracking-[0.2em]">Live Data Connected</p>
+                    <div id="statusIndicator" class="w-2 h-2 rounded-full bg-green-500 loading-pulse"></div>
+                    <p id="statusText" class="text-[9px] text-white/40 uppercase tracking-[0.2em]">Sincronización Activa</p>
                 </div>
             </div>
         </section>
@@ -198,14 +198,14 @@
     <div id="invModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[110]">
         <div class="glass p-8 max-w-xl w-full border border-white/20 shadow-2xl">
             <h2 class="text-2xl font-bold mb-2">Configurar Activos</h2>
-            <p class="text-[10px] text-white/40 uppercase mb-4 tracking-tighter">Usa IDs de Coingecko (ej: bitcoin, ethereum, cardano)</p>
+            <p class="text-[10px] text-white/40 uppercase mb-4 tracking-tighter">Cripto: id coingecko (ej: bitcoin) | Acción: Ticker (ej: AAPL, TSLA, IDR.MC)</p>
             <div id="invEditorList" class="max-h-60 overflow-y-auto space-y-2 mb-6 pr-2 border-b border-white/10 pb-4"></div>
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
                 <select id="newInvType" class="p-2 bg-black/40 border border-white/20 rounded text-xs text-white">
                     <option value="crypto">Cripto</option>
                     <option value="stock">Acción</option>
                 </select>
-                <input type="text" id="newInvId" placeholder="ID (btc)" class="p-2 bg-black/40 border border-white/20 rounded text-xs uppercase text-white">
+                <input type="text" id="newInvId" placeholder="ID / Ticker" class="p-2 bg-black/40 border border-white/20 rounded text-xs uppercase text-white">
                 <input type="text" id="newInvLabel" placeholder="Alias" class="p-2 bg-black/40 border border-white/20 rounded text-xs text-white">
                 <input type="number" id="newInvQty" placeholder="Cant." class="p-2 bg-black/40 border border-white/10 rounded text-xs text-white" step="any">
             </div>
@@ -217,17 +217,18 @@
     </div>
 
     <script>
-        const STORAGE_KEY = "mi_dashboard_directo_v1";
+        const STORAGE_KEY = "mi_dashboard_final_v3";
         
         let state = {
             name: "¡Hola!",
             bgType: "random",
             bgValue: "",
             privacyMode: false,
-            currency: "usd",
+            currency: "eur",
             inversions: [
-                { id: "bitcoin", type: "crypto", label: "Bitcoin", quantity: 0.1, currentPrice: 0, change24h: 0, rank: 0 },
-                { id: "ethereum", type: "crypto", label: "Ethereum", quantity: 1.5, currentPrice: 0, change24h: 0, rank: 0 }
+                { id: "bitcoin", type: "crypto", label: "Bitcoin", quantity: 0.1, currentPrice: 0, change24h: 0 },
+                { id: "IDR.MC", type: "stock", label: "Indra", quantity: 100, currentPrice: 0, change24h: 0 },
+                { id: "AAPL", type: "stock", label: "Apple", quantity: 5, currentPrice: 0, change24h: 0 }
             ],
             tasks: [],
             notes: ""
@@ -236,7 +237,7 @@
         function formatValue(value) {
             return new Intl.NumberFormat('es-ES', {
                 style: 'currency',
-                currency: state.currency.toUpperCase(),
+                currency: (state.currency || 'eur').toUpperCase(),
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value);
@@ -248,7 +249,7 @@
                 try { 
                     const parsed = JSON.parse(saved);
                     state = { ...state, ...parsed };
-                } catch(e) { console.error("Corrupted storage reset."); }
+                } catch(e) { console.warn("Iniciando con estado por defecto."); }
             }
             initApp();
         }
@@ -257,84 +258,149 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
-        function toggleSettings() { document.getElementById('settingsDropdown').classList.toggle('active'); }
-        
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('.relative')) document.getElementById('settingsDropdown').classList.remove('active');
-        });
+        // --- Lógica de Mercado ---
 
-        function updateName(val) {
-            state.name = val || "¡Hola!";
-            document.getElementById('greeting').innerText = state.name;
-            saveState();
-        }
-
-        async function updateCurrency(val) {
-            state.currency = val;
-            saveState();
-            await fetchAllPrices();
-        }
-
-        function updateBgSelection(val) {
-            state.bgType = val;
-            updateBackground();
-            saveState();
-        }
-
-        async function initApp() {
-            document.getElementById('appContent').classList.remove('opacity-0');
-            document.getElementById('greeting').innerText = state.name;
-            document.getElementById('userNameEdit').value = state.name === "¡Hola!" ? "" : state.name;
-            document.getElementById('currencySelect').value = state.currency || "usd";
+        async function fetchPriceWithProxies(ticker) {
+            let cleanTicker = ticker.trim().replace(/\s+/g, '.').toUpperCase();
             
-            updateBackground();
-            updateDateTime();
-            updateTimeline();
-            renderTasks();
-            document.getElementById('notesArea').value = state.notes || "";
+            // Yahoo espera .MC para la Bolsa de Madrid
+            if (cleanTicker.endsWith('.BME')) cleanTicker = cleanTicker.replace('.BME', '.MC');
+
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${cleanTicker}?interval=1m&range=1d`;
             
-            await fetchAllPrices(); 
-            setInterval(fetchAllPrices, 120000); 
-            setInterval(updateDateTime, 30000);
+            const proxies = [
+                (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
+
+            for (let getProxy of proxies) {
+                try {
+                    const response = await fetch(getProxy(yahooUrl), { method: 'GET', timeout: 5000 });
+                    if (!response.ok) continue;
+                    
+                    const data = await response.json();
+                    let json = data;
+                    
+                    if (typeof data.contents === 'string') {
+                        json = JSON.parse(data.contents);
+                    } else if (data.contents) {
+                        json = data.contents;
+                    }
+
+                    if (json && json.chart && json.chart.result && json.chart.result[0]) {
+                        const meta = json.chart.result[0].meta;
+                        
+                        // Si es .MC forzamos EUR si no viene divisa
+                        let detectedCurrency = meta.currency ? meta.currency.toUpperCase() : (cleanTicker.endsWith('.MC') ? 'EUR' : 'USD');
+                        
+                        return {
+                            price: meta.regularMarketPrice,
+                            currency: detectedCurrency,
+                            change: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100
+                        };
+                    }
+                } catch (e) {
+                    continue; 
+                }
+            }
+            return null;
         }
 
         async function fetchAllPrices() {
-            const cryptos = state.inversions.filter(i => i.type === 'crypto');
-            if (cryptos.length === 0) {
-                renderInversions();
-                return;
-            }
+            const syncIcon = document.getElementById('syncIcon');
+            const statusIndicator = document.getElementById('statusIndicator');
+            
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+            if (statusIndicator) statusIndicator.className = "w-2 h-2 rounded-full bg-yellow-500 loading-pulse";
 
+            const targetCurrency = (state.currency || 'eur').toLowerCase();
+            
+            // Diccionario para almacenar las tasas de cambio base
+            // Fallbacks realistas por si falla la API de FX
+            let exchangeRates = { 
+                "USD": targetCurrency === 'eur' ? 0.92 : 1, 
+                "EUR": targetCurrency === 'usd' ? 1.09 : 1,
+                "GBP": targetCurrency === 'eur' ? 1.17 : 1.27
+            };
+
+            // Intentar actualizar tasas de cambio con CoinGecko
             try {
-                const ids = cryptos.map(c => c.id).join(',');
-                const curr = (state.currency || 'usd').toLowerCase();
-                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${curr}&include_24hr_change=true`;
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                
-                state.inversions = state.inversions.map(inv => {
-                    if (inv.type === 'crypto' && data[inv.id]) {
-                        return { 
-                            ...inv, 
-                            currentPrice: data[inv.id][curr] || 0, 
-                            change24h: data[inv.id][curr + '_24h_change'] || 0 
-                        };
-                    }
-                    return inv;
-                });
+                const fxRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=tether,euro,british-pound-sterling&vs_currencies=${targetCurrency}`);
+                if (fxRes.ok) {
+                    const fxData = await fxRes.json();
+                    if (fxData['tether']) exchangeRates['USD'] = fxData['tether'][targetCurrency];
+                    if (fxData['euro']) exchangeRates['EUR'] = fxData['euro'][targetCurrency];
+                    if (fxData['british-pound-sterling']) exchangeRates['GBP'] = fxData['british-pound-sterling'][targetCurrency];
+                }
             } catch (e) { 
-                console.error("Error fetching prices:", e); 
-            } finally {
-                renderInversions();
-                saveState();
+                console.warn("Usando tasas de cambio estáticas de seguridad."); 
             }
+
+            // 1. Criptos
+            const cryptos = state.inversions.filter(i => i.type === 'crypto');
+            if (cryptos.length > 0) {
+                try {
+                    const ids = cryptos.map(c => c.id).join(',');
+                    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${targetCurrency}&include_24hr_change=true`;
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        state.inversions = state.inversions.map(inv => {
+                            if (inv.type === 'crypto' && data[inv.id]) {
+                                return { 
+                                    ...inv, 
+                                    currentPrice: data[inv.id][targetCurrency], 
+                                    change24h: data[inv.id][`${targetCurrency}_24h_change`] || 0 
+                                };
+                            }
+                            return inv;
+                        });
+                    }
+                } catch (e) { console.warn("Error Cripto API"); }
+            }
+
+            // 2. Acciones
+            for (let i = 0; i < state.inversions.length; i++) {
+                const inv = state.inversions[i];
+                if (inv.type === 'stock') {
+                    const result = await fetchPriceWithProxies(inv.id);
+                    if (result) {
+                        let originalCurrency = result.currency;
+                        let rawPrice = result.price;
+
+                        // CORRECCIÓN PARA GBp (Centavos de libra)
+                        if (originalCurrency === 'GBX' || originalCurrency === 'GBP' && rawPrice > 1000 && inv.id.includes('.L')) {
+                             rawPrice = rawPrice / 100;
+                             originalCurrency = 'GBP';
+                        }
+
+                        const targetCurrencyUpper = targetCurrency.toUpperCase();
+                        let finalPrice = rawPrice;
+                        
+                        // Conversión de divisa
+                        if (originalCurrency !== targetCurrencyUpper) {
+                            // Si la moneda del activo es USD y queremos EUR: precio * 0.92
+                            // Si la moneda del activo es EUR y queremos USD: precio * 1.09
+                            const rate = exchangeRates[originalCurrency];
+                            if (rate) {
+                                finalPrice = rawPrice * rate;
+                            }
+                        }
+                        
+                        state.inversions[i].currentPrice = finalPrice;
+                        state.inversions[i].change24h = result.change;
+                    }
+                }
+            }
+
+            if (syncIcon) syncIcon.classList.remove('fa-spin');
+            if (statusIndicator) statusIndicator.className = "w-2 h-2 rounded-full bg-green-500 loading-pulse";
+            
+            renderInversions();
+            saveState();
         }
+
+        // --- UI y Renderizado ---
 
         function renderInversions() {
             const grid = document.getElementById('inversionsGrid');
@@ -349,8 +415,6 @@
                 const totalValue = inv.currentPrice * inv.quantity;
                 const allocation = totalPortfolio > 0 ? (totalValue / totalPortfolio * 100).toFixed(1) : 0;
                 const isPositive = inv.change24h >= 0;
-                const colorClass = isPositive ? 'text-green-400' : 'text-red-400';
-                const trendIcon = isPositive ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
                 
                 const card = document.createElement('div');
                 card.className = "glass p-5 border border-white/5 flex flex-col justify-between hover:bg-white/5 transition-all group";
@@ -361,12 +425,12 @@
                                 <span class="text-[8px] bg-white/10 px-1.5 py-0.5 rounded text-white/60 font-bold uppercase">${inv.type}</span>
                                 <p class="text-[11px] text-white font-bold uppercase tracking-wider">${inv.label}</p>
                             </div>
-                            <p class="text-[10px] text-white/30 font-mono">${inv.quantity.toLocaleString()} UNIDADES</p>
+                            <p class="text-[10px] text-white/30 font-mono">${inv.quantity.toLocaleString()} UNID.</p>
                         </div>
                         <div class="text-right">
-                            <div class="${colorClass} text-[11px] font-bold flex items-center gap-1 justify-end">
-                                <i class="fas ${trendIcon} text-[9px]"></i>
-                                ${Math.abs(inv.change24h).toFixed(2)}%
+                            <div class="${isPositive ? 'text-green-400' : 'text-red-400'} text-[11px] font-bold flex items-center gap-1 justify-end">
+                                <i class="fas ${isPositive ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'} text-[9px]"></i>
+                                ${Math.abs(inv.change24h || 0).toFixed(2)}%
                             </div>
                             <div class="text-[9px] text-white/20 uppercase font-bold mt-1">${allocation}% MIX</div>
                         </div>
@@ -389,65 +453,28 @@
 
             const totalEl = document.getElementById('totalPortfolioValue');
             totalEl.innerText = formatValue(totalPortfolio);
-            
-            const statsEl = document.getElementById('portfolioStats');
-            statsEl.innerText = `${state.inversions.length} ACTIVOS EN SEGUIMIENTO`;
-            
             if (state.privacyMode) totalEl.classList.add('hidden-content');
             else totalEl.classList.remove('hidden-content');
+            
+            document.getElementById('portfolioStats').innerText = `${state.inversions.length} ACTIVOS EN CARTERA`;
         }
 
+        // --- Funcionalidades Dashboard ---
+
+        function updateName(val) { state.name = val || "¡Hola!"; document.getElementById('greeting').innerText = state.name; saveState(); }
+        
+        async function updateCurrency(val) { 
+            state.currency = val; 
+            saveState(); 
+            await fetchAllPrices(); 
+        }
+
+        function updateBgSelection(val) { state.bgType = val; updateBackground(); saveState(); }
+        function toggleSettings() { document.getElementById('settingsDropdown').classList.toggle('active'); }
+        function togglePrivacy() { state.privacyMode = !state.privacyMode; renderInversions(); saveState(); }
         function showInversionModal() { document.getElementById('invModal').classList.remove('hidden'); renderInvEditor(); }
         function hideInversionModal() { document.getElementById('invModal').classList.add('hidden'); }
-
-        function renderInvEditor() {
-            const list = document.getElementById('invEditorList');
-            list.innerHTML = "";
-            state.inversions.forEach((inv, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-white/5 p-3 rounded border border-white/5";
-                div.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="font-bold text-blue-300 text-[10px] uppercase">${inv.label} (${inv.id})</span>
-                        <span class="text-[9px] text-white/40">${inv.quantity} ${inv.type}</span>
-                    </div>
-                    <button onclick="removeInversion(${idx})" class="text-white/20 hover:text-red-400 transition-colors p-2"><i class="fas fa-trash-alt"></i></button>`;
-                list.appendChild(div);
-            });
-        }
-
-        async function addNewInversion() {
-            const type = document.getElementById('newInvType').value;
-            const id = document.getElementById('newInvId').value.trim().toLowerCase();
-            const label = document.getElementById('newInvLabel').value.trim();
-            const qtyInput = document.getElementById('newInvQty').value;
-            const qty = parseFloat(qtyInput);
-            
-            if (id && !isNaN(qty)) {
-                state.inversions.push({ 
-                    id, 
-                    type, 
-                    label: label || id, 
-                    quantity: qty, 
-                    currentPrice: 0, 
-                    change24h: 0 
-                });
-                document.getElementById('newInvId').value = "";
-                document.getElementById('newInvQty').value = "";
-                document.getElementById('newInvLabel').value = "";
-                renderInvEditor(); 
-                await fetchAllPrices();
-            }
-        }
-
-        function removeInversion(idx) { state.inversions.splice(idx, 1); renderInvEditor(); renderInversions(); saveState(); }
-
-        function togglePrivacy() {
-            state.privacyMode = !state.privacyMode;
-            document.getElementById('privacyIcon').className = state.privacyMode ? "fas fa-eye" : "fas fa-eye-slash";
-            renderInversions(); saveState();
-        }
-
+        
         function updateBackground() {
             if (state.bgType === 'random') {
                 document.body.style.backgroundImage = `url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1920')`;
@@ -460,8 +487,7 @@
 
         function updateDateTime() {
             const now = new Date();
-            const opts = { weekday: 'long', month: 'long', day: 'numeric' };
-            document.getElementById('currentDate').innerText = now.toLocaleDateString('es-ES', opts);
+            document.getElementById('currentDate').innerText = now.toLocaleDateString('es-ES', { weekday: 'long', month: 'long', day: 'numeric' });
             const start = new Date(now.getFullYear(), 0, 1);
             const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
             document.getElementById('weekNumber').innerText = `Semana ${week}`;
@@ -471,18 +497,10 @@
             const now = new Date();
             const start = new Date(now.getFullYear(), 0, 1);
             const end = new Date(now.getFullYear(), 11, 31);
-            const pct = (((now - start) / (end - start)) * 100).toFixed(2);
+            const pct = (((now - start) / (end - start)) * 100).toFixed(0);
             document.getElementById('yearProgressBar').style.width = `${pct}%`;
-            document.getElementById('yearPercent').innerText = `${Math.floor(pct)}%`;
-            const diff = Math.ceil((end - now) / 86400000);
-            document.getElementById('daysRemaining').innerText = `${diff} días restantes en ${now.getFullYear()}`;
-        }
-        
-        function addTask() {
-            const input = document.getElementById('newTaskInput');
-            if (!input.value.trim()) return;
-            state.tasks.push({ id: Date.now(), text: input.value, done: false });
-            input.value = ""; renderTasks(); saveState();
+            document.getElementById('yearPercent').innerText = `${pct}%`;
+            document.getElementById('daysRemaining').innerText = `${Math.ceil((end - now) / 86400000)} días para terminar el año`;
         }
 
         function renderTasks() {
@@ -496,9 +514,16 @@
                         <i class="fa-regular ${t.done ? 'fa-check-circle text-green-400' : 'fa-circle text-white/20'} mr-3"></i>
                         <span class="${t.done ? 'line-through opacity-30' : ''}">${t.text}</span>
                     </div>
-                    <button onclick="deleteTask(${t.id})" class="text-white/0 group-hover:text-white/20 hover:text-red-400 transition-all"><i class="fas fa-times"></i></button>`;
+                    <button onclick="deleteTask(${t.id})" class="text-white/0 group-hover:text-white/20 hover:text-red-400 transition-all p-2"><i class="fas fa-times text-xs"></i></button>`;
                 list.appendChild(li);
             });
+        }
+
+        function addTask() {
+            const input = document.getElementById('newTaskInput');
+            if (!input.value.trim()) return;
+            state.tasks.push({ id: Date.now(), text: input.value, done: false });
+            input.value = ""; renderTasks(); saveState();
         }
 
         function toggleTask(id) { 
@@ -506,12 +531,47 @@
             if (t) t.done = !t.done; 
             renderTasks(); saveState(); 
         }
+
         function deleteTask(id) { state.tasks = state.tasks.filter(x => x.id !== id); renderTasks(); saveState(); }
         function saveNotes() { state.notes = document.getElementById('notesArea').value; saveState(); }
 
+        function renderInvEditor() {
+            const list = document.getElementById('invEditorList');
+            list.innerHTML = "";
+            state.inversions.forEach((inv, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-white/5 p-3 rounded border border-white/5";
+                div.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-bold text-blue-300 text-[10px] uppercase">${inv.label} (${inv.id})</span>
+                        <span class="text-[9px] text-white/40">${inv.quantity} unidades</span>
+                    </div>
+                    <button onclick="removeInversion(${idx})" class="text-white/20 hover:text-red-400 transition-colors p-2"><i class="fas fa-trash-alt"></i></button>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function addNewInversion() {
+            const type = document.getElementById('newInvType').value;
+            const id = document.getElementById('newInvId').value.trim();
+            const label = document.getElementById('newInvLabel').value.trim();
+            const qty = parseFloat(document.getElementById('newInvQty').value);
+            
+            if (id && !isNaN(qty)) {
+                state.inversions.push({ id, type, label: label || id, quantity: qty, currentPrice: 0, change24h: 0 });
+                document.getElementById('newInvId').value = "";
+                document.getElementById('newInvQty').value = "";
+                document.getElementById('newInvLabel').value = "";
+                renderInvEditor(); 
+                await fetchAllPrices();
+            }
+        }
+
+        function removeInversion(idx) { state.inversions.splice(idx, 1); renderInvEditor(); renderInversions(); saveState(); }
+
         function exportData() {
             const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dashboard_backup.json'; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_dashboard.json'; a.click();
         }
 
         function importData(e) {
@@ -523,12 +583,38 @@
                     state = { ...state, ...imported };
                     saveState(); 
                     location.reload(); 
-                } catch(err) { console.error("Import error"); }
+                } catch(err) { console.error("Error importando archivo."); }
             };
             reader.readAsText(file);
         }
 
+        async function initApp() {
+            document.getElementById('appContent').classList.remove('opacity-0');
+            document.getElementById('greeting').innerText = state.name;
+            document.getElementById('userNameEdit').value = state.name === "¡Hola!" ? "" : state.name;
+            document.getElementById('currencySelect').value = state.currency || "eur";
+            
+            updateBackground();
+            updateDateTime();
+            updateTimeline();
+            renderTasks();
+            document.getElementById('notesArea').value = state.notes || "";
+            
+            await fetchAllPrices(); 
+            setInterval(fetchAllPrices, 300000); 
+            setInterval(updateDateTime, 30000);
+        }
+
         window.onload = loadState;
+        
+        window.onclick = function(event) {
+            if (!event.target.closest('.relative')) {
+                const dropdown = document.getElementById('settingsDropdown');
+                if (dropdown && dropdown.classList.contains('active')) {
+                    dropdown.classList.remove('active');
+                }
+            }
+        }
     </script>
 </body>
 </html>
