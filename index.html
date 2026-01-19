@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Dashboard Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+        body {
+            min-height: 100vh;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #0a0a0c;
+        }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+        }
+        .progress-bar-container {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #3b82f6);
+            transition: width 1s ease-in-out;
+        }
+        .hidden-content {
+            filter: blur(10px);
+            pointer-events: none;
+            user-select: none;
+        }
+        /* Máximo nivel de Z para el menú de ajustes */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 115%;
+            width: 240px;
+            z-index: 9999; 
+        }
+        .dropdown-menu.active {
+            display: block;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loading-pulse { animation: pulse-soft 2s infinite; }
+    </style>
+</head>
+<body class="text-white font-sans antialiased p-4 md:p-8">
+
+    <!-- MAIN APP -->
+    <main id="appContent" class="max-w-6xl mx-auto space-y-6 opacity-0 transition-opacity duration-700">
+        
+        <!-- HEADER & TIMELINE -->
+        <header class="glass p-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <div>
+                    <h1 id="greeting" class="text-3xl font-bold">¡Hola!</h1>
+                    <p id="currentDate" class="text-white/80 text-sm"></p>
+                </div>
+                
+                <div class="mt-4 md:mt-0 flex flex-wrap gap-2 relative">
+                    <!-- Botones principales integrados -->
+                    <button onclick="fetchAllPrices()" class="text-xs bg-white/10 p-2 px-3 rounded hover:bg-white/20 transition-all border border-white/5" title="Actualizar Precios">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    
+                    <button onclick="exportData()" class="text-xs bg-blue-600/30 p-2 px-3 rounded hover:bg-blue-600/50 transition-all border border-blue-500/20" title="Guardar Copia de Seguridad">
+                        <i class="fas fa-save mr-1"></i> Guardar
+                    </button>
+
+                    <button onclick="document.getElementById('importFile').click()" class="text-xs bg-emerald-600/30 p-2 px-3 rounded hover:bg-emerald-600/50 transition-all border border-emerald-500/20" title="Cargar Datos">
+                        <i class="fas fa-folder-open mr-1"></i> Cargar
+                    </button>
+                    <input type="file" id="importFile" class="hidden" onchange="importData(event)">
+
+                    <button onclick="toggleSettings()" class="text-xs bg-white/10 p-2 px-3 rounded hover:bg-white/20 transition-all border border-white/5">
+                        <i class="fas fa-cog mr-1"></i> Ajustes
+                    </button>
+                    
+                    <!-- Settings Dropdown -->
+                    <div id="settingsDropdown" class="dropdown-menu glass p-5 shadow-2xl border-white/30 bg-black/60">
+                        <div class="mb-4">
+                            <p class="text-[10px] uppercase font-bold text-white/40 mb-2 tracking-widest">Identidad</p>
+                            <input type="text" id="userNameEdit" oninput="updateName(this.value)" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded focus:border-blue-500 outline-none" placeholder="Tu nombre...">
+                        </div>
+
+                        <div>
+                            <p class="text-[10px] uppercase font-bold text-white/40 mb-2 tracking-widest">Personalización</p>
+                            <select onchange="updateBgSelection(this.value)" id="quickBgType" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded mb-3 outline-none">
+                                <option value="random">Fondo Aleatorio</option>
+                                <option value="solid">Color Sólido</option>
+                                <option value="local">Imagen Local</option>
+                            </select>
+                            <div id="quickLocalContainer" class="hidden">
+                                <p class="text-[9px] text-white/40 mb-1">SUBIR IMAGEN:</p>
+                                <input type="file" onchange="handleQuickUpload(this)" class="text-[10px] w-full mb-2 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:bg-white/10 file:text-white">
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-white/20 mt-2 italic text-center">Los cambios se aplican al instante.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                    <span id="timelineLabel" class="uppercase tracking-wider opacity-60">Progreso del Año</span>
+                    <span id="yearPercent" class="font-mono font-bold">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="yearProgressBar" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="daysRemaining" class="text-[10px] text-center text-white/40 pt-1 uppercase tracking-tighter"></p>
+            </div>
+        </header>
+
+        <!-- PRODUCTIVITY SECTION -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section class="glass p-6 flex flex-col h-[400px]">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2 uppercase text-xs tracking-widest opacity-80">
+                    <i class="fas fa-list-ul text-green-400"></i> Objetivos Diarios
+                </h2>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="newTaskInput" class="flex-1 bg-white/5 border border-white/10 rounded p-2 focus:outline-none text-sm" placeholder="Nueva meta...">
+                    <button onclick="addTask()" class="bg-white/10 hover:bg-white/20 px-4 rounded text-sm transition-all border border-white/10">Añadir</button>
+                </div>
+                <ul id="taskList" class="flex-1 overflow-y-auto space-y-2 pr-2 text-sm"></ul>
+            </section>
+
+            <section class="glass p-6 flex flex-col h-[400px]">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2 uppercase text-xs tracking-widest opacity-80">
+                    <i class="fas fa-brain text-blue-400"></i> Notas Rápidas
+                </h2>
+                <textarea id="notesArea" oninput="saveNotes()" class="flex-1 bg-white/5 border border-white/10 rounded p-4 focus:outline-none resize-none text-sm leading-relaxed" placeholder="Vuelca tus pensamientos aquí..."></textarea>
+            </section>
+        </div>
+
+        <!-- INVESTMENTS DASHBOARD -->
+        <section class="glass p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold">Mercados</h2>
+                    <button onclick="togglePrivacy()" id="privacyBtn" class="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all">
+                        <i id="privacyIcon" class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <select id="timeframe" onchange="renderInversions()" class="bg-black/40 text-[10px] p-2 rounded border border-white/10 focus:outline-none uppercase font-bold">
+                        <option value="24h">24h</option>
+                        <option value="7d">7d</option>
+                        <option value="30d">30d</option>
+                    </select>
+                    <button onclick="showInversionModal()" class="bg-blue-600/60 hover:bg-blue-600 px-4 py-2 rounded text-[10px] font-bold transition-all uppercase tracking-widest">Gestionar</button>
+                </div>
+            </div>
+            
+            <div id="inversionsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            
+            <div class="mt-6 pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div id="totalPortfolioValue" class="text-2xl font-bold font-mono">$0.00</div>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500 loading-pulse"></div>
+                    <p class="text-[9px] text-white/40 uppercase tracking-[0.2em]">Conectado</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- INVERSION MODAL -->
+    <div id="invModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 hidden z-[110]">
+        <div class="glass p-8 max-w-xl w-full border border-white/20 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-2">Editor de Activos</h2>
+            <div id="invEditorList" class="max-h-60 overflow-y-auto space-y-2 mb-6 pr-2 border-b border-white/10 pb-4"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+                <select id="newInvType" class="p-2 bg-black/40 border border-white/20 rounded text-xs">
+                    <option value="crypto">Cripto</option>
+                    <option value="stock">Acción</option>
+                </select>
+                <input type="text" id="newInvId" placeholder="ID (btc/aapl)" class="p-2 bg-black/40 border border-white/20 rounded text-xs uppercase">
+                <input type="text" id="newInvLabel" placeholder="Nombre" class="p-2 bg-black/40 border border-white/20 rounded text-xs">
+                <input type="number" id="newInvQty" placeholder="Cant." class="p-2 bg-black/40 border border-white/20 rounded text-xs" step="any">
+            </div>
+            <div id="validationMsg" class="text-[10px] mb-4 hidden">Sincronizando...</div>
+            <div class="flex gap-2">
+                <button id="addInvBtn" onclick="addNewInversion()" class="flex-1 bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold text-xs transition-all uppercase">Añadir</button>
+                <button onclick="hideInversionModal()" class="flex-1 bg-white/10 p-2 rounded text-xs hover:bg-white/20 transition-all uppercase">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = "mi_dashboard_directo_v1";
+        const apiKey = ""; 
+
+        // Estado inicial
+        let state = {
+            name: "¡Hola!",
+            bgType: "random",
+            bgValue: "",
+            privacyMode: false,
+            inversions: [
+                { id: "bitcoin", type: "crypto", label: "Bitcoin", quantity: 0.1, currentPrice: 0, change24h: 0 },
+                { id: "ethereum", type: "crypto", label: "Ethereum", quantity: 1.5, currentPrice: 0, change24h: 0 }
+            ],
+            tasks: [],
+            notes: ""
+        };
+
+        // --- PERSISTENCIA AUTOMÁTICA ---
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Error cargando el estado guardado.");
+                }
+            }
+            initApp();
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.error("Error al guardar: la imagen local podría ser demasiado grande.");
+            }
+        }
+
+        // --- AJUSTES ---
+        function toggleSettings() {
+            document.getElementById('settingsDropdown').classList.toggle('active');
+        }
+
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest('.relative')) {
+                document.getElementById('settingsDropdown').classList.remove('active');
+            }
+        });
+
+        function updateName(val) {
+            state.name = val || "¡Hola!";
+            document.getElementById('greeting').innerText = state.name;
+            saveState();
+        }
+
+        function updateBgSelection(val) {
+            state.bgType = val;
+            const container = document.getElementById('quickLocalContainer');
+            if (val === 'local') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                updateBackground();
+                saveState();
+            }
+        }
+
+        function handleQuickUpload(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    state.bgValue = e.target.result;
+                    state.bgType = 'local';
+                    updateBackground();
+                    saveState();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- INICIALIZACIÓN ---
+        async function initApp() {
+            document.getElementById('appContent').classList.remove('opacity-0');
+            document.getElementById('greeting').innerText = state.name;
+            document.getElementById('userNameEdit').value = (state.name === "¡Hola!") ? "" : state.name;
+            document.getElementById('quickBgType').value = state.bgType;
+            
+            updateBackground();
+            updateDateTime();
+            updateTimeline();
+            renderTasks();
+            document.getElementById('notesArea').value = state.notes || "";
+            
+            await fetchAllPrices(); 
+            setInterval(fetchAllPrices, 600000); 
+            setInterval(updateDateTime, 30000);
+        }
+
+        // --- API PRECIOS ---
+        async function fetchAllPrices() {
+            const cryptos = state.inversions.filter(i => i.type === 'crypto');
+            if (cryptos.length > 0) {
+                try {
+                    const ids = cryptos.map(c => c.id).join(',');
+                    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+                    const data = await res.json();
+                    state.inversions = state.inversions.map(inv => {
+                        if (inv.type === 'crypto' && data[inv.id]) {
+                            return { ...inv, currentPrice: data[inv.id].usd, change24h: data[inv.id].usd_24h_change || 0 };
+                        }
+                        return inv;
+                    });
+                } catch (e) {}
+            }
+            renderInversions();
+            saveState();
+        }
+
+        // --- RENDERS ---
+        function renderInversions() {
+            const grid = document.getElementById('inversionsGrid');
+            grid.innerHTML = "";
+            let totalPortfolio = 0;
+            state.inversions.forEach(inv => {
+                const totalValue = inv.currentPrice * inv.quantity;
+                totalPortfolio += totalValue;
+                const colorClass = inv.change24h >= 0 ? 'text-green-400' : 'text-red-400';
+                const card = document.createElement('div');
+                card.className = "glass p-5 border border-white/5 flex flex-col justify-between hover:border-white/20 transition-all";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[8px] border border-white/20 px-1.5 py-0.5 rounded text-white/40 font-bold uppercase">${inv.type}</span>
+                                <p class="text-[10px] text-white/80 font-bold uppercase tracking-wider">${inv.label}</p>
+                            </div>
+                            <p class="text-[10px] text-white/30 font-mono">${inv.quantity} UNI</p>
+                        </div>
+                        <div class="text-right"><span class="${colorClass} text-[10px] font-mono">${inv.change24h.toFixed(2)}%</span></div>
+                    </div>
+                    <div class="mt-4 ${state.privacyMode ? 'hidden-content' : ''}">
+                        <h3 class="text-2xl font-bold font-mono">$${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                        <p class="text-[9px] text-white/20 uppercase">Unit: $${inv.currentPrice.toLocaleString()}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            const totalEl = document.getElementById('totalPortfolioValue');
+            totalEl.innerText = `TOTAL: $${totalPortfolio.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            if (state.privacyMode) totalEl.classList.add('hidden-content');
+            else totalEl.classList.remove('hidden-content');
+        }
+
+        function showInversionModal() { document.getElementById('invModal').classList.remove('hidden'); renderInvEditor(); }
+        function hideInversionModal() { document.getElementById('invModal').classList.add('hidden'); }
+
+        function renderInvEditor() {
+            const list = document.getElementById('invEditorList');
+            list.innerHTML = "";
+            state.inversions.forEach((inv, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-white/5 p-3 rounded border border-white/5";
+                div.innerHTML = `<div><span class="font-bold text-blue-300 text-xs uppercase">${inv.label}</span></div>
+                <button onclick="removeInversion(${idx})" class="text-white/20 hover:text-red-400 transition-colors"><i class="fas fa-trash"></i></button>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function addNewInversion() {
+            const type = document.getElementById('newInvType').value;
+            const id = document.getElementById('newInvId').value.trim().toLowerCase();
+            const label = document.getElementById('newInvLabel').value.trim();
+            const qty = parseFloat(document.getElementById('newInvQty').value);
+            
+            if (id && !isNaN(qty)) {
+                state.inversions.push({ id, type, label: label || id, quantity: qty, currentPrice: 0, change24h: 0 });
+                renderInvEditor();
+                await fetchAllPrices();
+            }
+        }
+
+        function removeInversion(idx) { state.inversions.splice(idx, 1); renderInvEditor(); renderInversions(); saveState(); }
+
+        function togglePrivacy() {
+            state.privacyMode = !state.privacyMode;
+            document.getElementById('privacyIcon').className = state.privacyMode ? "fas fa-eye" : "fas fa-eye-slash";
+            renderInversions(); saveState();
+        }
+
+        function updateBackground() {
+            if (state.bgType === 'random') {
+                document.body.style.backgroundImage = `url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1920')`;
+                document.body.style.backgroundColor = "transparent";
+            } else if (state.bgType === 'solid') {
+                document.body.style.backgroundImage = "none";
+                document.body.style.backgroundColor = "#111827";
+            } else if (state.bgType === 'local' && state.bgValue) {
+                document.body.style.backgroundImage = `url(${state.bgValue})`;
+                document.body.style.backgroundColor = "transparent";
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').innerText = `${now.toLocaleDateString('es-ES', opts)}`;
+        }
+
+        function updateTimeline() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 1);
+            const end = new Date(now.getFullYear(), 11, 31);
+            const pct = (((now - start) / (end - start)) * 100).toFixed(4);
+            document.getElementById('yearProgressBar').style.width = `${pct}%`;
+            document.getElementById('yearPercent').innerText = `${pct}%`;
+            const diff = Math.ceil((end - now) / 86400000);
+            document.getElementById('daysRemaining').innerText = `${diff} días para terminar el año`;
+        }
+
+        function addTask() {
+            const input = document.getElementById('newTaskInput');
+            if (!input.value.trim()) return;
+            state.tasks.push({ id: Date.now(), text: input.value, done: false });
+            input.value = ""; renderTasks(); saveState();
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('taskList');
+            list.innerHTML = "";
+            state.tasks.forEach(t => {
+                const li = document.createElement('li');
+                li.className = "flex items-center justify-between bg-white/5 p-3 rounded border border-white/5 hover:bg-white/10 transition-all";
+                li.innerHTML = `<div class="cursor-pointer flex items-center" onclick="toggleTask(${t.id})">
+                <i class="fa-regular ${t.done ? 'fa-check-circle text-green-400' : 'fa-circle text-white/10'} mr-3"></i>
+                <span class="${t.done ? 'line-through opacity-30 text-white/50' : ''}">${t.text}</span></div>
+                <button onclick="deleteTask(${t.id})" class="text-white/10 hover:text-red-400 p-1"><i class="fas fa-times"></i></button>`;
+                list.appendChild(li);
+            });
+        }
+
+        function toggleTask(id) { const t = state.tasks.find(x => x.id === id); if (t) t.done = !t.done; renderTasks(); saveState(); }
+        function deleteTask(id) { state.tasks = state.tasks.filter(x => x.id !== id); renderTasks(); saveState(); }
+        function saveNotes() { state.notes = document.getElementById('notesArea').value; saveState(); }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mi_dashboard_backup.json'; a.click();
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => { 
+                try {
+                    state = JSON.parse(ev.target.result); 
+                    saveState(); 
+                    location.reload(); 
+                } catch(err) { alert("Archivo de datos corrupto o inválido."); }
+            };
+            reader.readAsText(file);
+        }
+
+        window.onload = loadState;
+    </script>
+</body>
+</html>
