@@ -20,7 +20,7 @@
             background-color: #0a0a0c;
         }
         .glass {
-            background: var(--glass-bg);
+            background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
@@ -38,11 +38,10 @@
             transition: width 1s ease-in-out;
         }
         .hidden-content {
-            filter: blur(10px);
+            filter: blur(12px);
             pointer-events: none;
             user-select: none;
         }
-        /* Máximo nivel de Z para el menú de ajustes */
         .dropdown-menu {
             display: none;
             position: absolute;
@@ -63,6 +62,13 @@
             50% { opacity: 0.5; }
         }
         .loading-pulse { animation: pulse-soft 2s infinite; }
+
+        .asset-mix-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.1);
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body class="text-white font-sans antialiased p-4 md:p-8">
@@ -75,11 +81,13 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                 <div>
                     <h1 id="greeting" class="text-3xl font-bold">¡Hola!</h1>
-                    <p id="currentDate" class="text-white/80 text-sm"></p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <p id="currentDate" class="text-white/80 text-sm"></p>
+                        <span id="weekNumber" class="text-[20px] bg-white/10 px-2 py-0.5 rounded border border-white/5 font-mono uppercase tracking-widest text-white/60">Semana 0</span>
+                    </div>
                 </div>
                 
                 <div class="mt-4 md:mt-0 flex flex-wrap gap-2 relative">
-                    <!-- Botones principales integrados -->
                     <button onclick="fetchAllPrices()" class="text-xs bg-white/10 p-2 px-3 rounded hover:bg-white/20 transition-all border border-white/5" title="Actualizar Precios">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -97,11 +105,21 @@
                         <i class="fas fa-cog mr-1"></i> Ajustes
                     </button>
                     
-                    <!-- Settings Dropdown -->
                     <div id="settingsDropdown" class="dropdown-menu glass p-5 shadow-2xl border-white/30 bg-black/60">
                         <div class="mb-4">
-                            <p class="text-[10px] uppercase font-bold text-white/40 mb-2 tracking-widest">Identidad</p>
-                            <input type="text" id="userNameEdit" oninput="updateName(this.value)" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded focus:border-blue-500 outline-none" placeholder="Tu nombre...">
+                            <p class="text-[10px] uppercase font-bold text-white/40 mb-2 tracking-widest">Mensaje</p>
+                            <input type="text" id="userNameEdit" oninput="updateName(this.value)" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded focus:border-blue-500 outline-none" placeholder="Tu mensaje...">
+                        </div>
+
+                        <div class="mb-4">
+                            <p class="text-[10px] uppercase font-bold text-white/40 mb-2 tracking-widest">Divisa Principal</p>
+                            <select onchange="updateCurrency(this.value)" id="currencySelect" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded outline-none">
+                                <option value="usd">USD - Dólar</option>
+                                <option value="eur">EUR - Euro</option>
+                                <option value="gbp">GBP - Libra</option>
+                                <option value="mxn">MXN - Peso</option>
+                                <option value="jpy">JPY - Yen</option>
+                            </select>
                         </div>
 
                         <div>
@@ -109,14 +127,8 @@
                             <select onchange="updateBgSelection(this.value)" id="quickBgType" class="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded mb-3 outline-none">
                                 <option value="random">Fondo Aleatorio</option>
                                 <option value="solid">Color Sólido</option>
-                                <option value="local">Imagen Local</option>
                             </select>
-                            <div id="quickLocalContainer" class="hidden">
-                                <p class="text-[9px] text-white/40 mb-1">SUBIR IMAGEN:</p>
-                                <input type="file" onchange="handleQuickUpload(this)" class="text-[10px] w-full mb-2 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:bg-white/10 file:text-white">
-                            </div>
                         </div>
-                        <p class="text-[9px] text-white/20 mt-2 italic text-center">Los cambios se aplican al instante.</p>
                     </div>
                 </div>
             </div>
@@ -158,50 +170,47 @@
         <section class="glass p-6">
             <div class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold">Mercados</h2>
+                    <h2 class="text-xl font-bold">Cartera <span class="text-[10px] opacity-40 font-normal ml-2 uppercase tracking-widest">(Precios a tiempo real)</span></h2>
                     <button onclick="togglePrivacy()" id="privacyBtn" class="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all">
                         <i id="privacyIcon" class="fas fa-eye-slash"></i>
                     </button>
                 </div>
-                <div class="flex gap-2 items-center">
-                    <select id="timeframe" onchange="renderInversions()" class="bg-black/40 text-[10px] p-2 rounded border border-white/10 focus:outline-none uppercase font-bold">
-                        <option value="24h">24h</option>
-                        <option value="7d">7d</option>
-                        <option value="30d">30d</option>
-                    </select>
-                    <button onclick="showInversionModal()" class="bg-blue-600/60 hover:bg-blue-600 px-4 py-2 rounded text-[10px] font-bold transition-all uppercase tracking-widest">Gestionar</button>
-                </div>
+                <button onclick="showInversionModal()" class="bg-blue-600/60 hover:bg-blue-600 px-4 py-2 rounded text-[10px] font-bold transition-all uppercase tracking-widest">Gestionar</button>
             </div>
             
             <div id="inversionsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             
-            <div class="mt-6 pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div id="totalPortfolioValue" class="text-2xl font-bold font-mono">$0.00</div>
+            <div class="mt-6 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-end gap-4">
+                <div class="space-y-1">
+                    <p class="text-[10px] text-white/40 uppercase tracking-widest">Valor Total de Cartera</p>
+                    <div id="totalPortfolioValue" class="text-3xl font-bold font-mono">$0.00</div>
+                    <p id="portfolioStats" class="text-[10px] text-blue-400/80 uppercase font-bold"></p>
+                </div>
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-green-500 loading-pulse"></div>
-                    <p class="text-[9px] text-white/40 uppercase tracking-[0.2em]">Conectado</p>
+                    <p class="text-[9px] text-white/40 uppercase tracking-[0.2em]">Live Data Connected</p>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- INVERSION MODAL -->
-    <div id="invModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 hidden z-[110]">
+    <!-- MODAL -->
+    <div id="invModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[110]">
         <div class="glass p-8 max-w-xl w-full border border-white/20 shadow-2xl">
-            <h2 class="text-2xl font-bold mb-2">Editor de Activos</h2>
+            <h2 class="text-2xl font-bold mb-2">Configurar Activos</h2>
+            <p class="text-[10px] text-white/40 uppercase mb-4 tracking-tighter">Usa IDs de Coingecko (ej: bitcoin, ethereum, cardano)</p>
             <div id="invEditorList" class="max-h-60 overflow-y-auto space-y-2 mb-6 pr-2 border-b border-white/10 pb-4"></div>
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
-                <select id="newInvType" class="p-2 bg-black/40 border border-white/20 rounded text-xs">
+                <select id="newInvType" class="p-2 bg-black/40 border border-white/20 rounded text-xs text-white">
                     <option value="crypto">Cripto</option>
                     <option value="stock">Acción</option>
                 </select>
-                <input type="text" id="newInvId" placeholder="ID (btc/aapl)" class="p-2 bg-black/40 border border-white/20 rounded text-xs uppercase">
-                <input type="text" id="newInvLabel" placeholder="Nombre" class="p-2 bg-black/40 border border-white/20 rounded text-xs">
-                <input type="number" id="newInvQty" placeholder="Cant." class="p-2 bg-black/40 border border-white/20 rounded text-xs" step="any">
+                <input type="text" id="newInvId" placeholder="ID (btc)" class="p-2 bg-black/40 border border-white/20 rounded text-xs uppercase text-white">
+                <input type="text" id="newInvLabel" placeholder="Alias" class="p-2 bg-black/40 border border-white/20 rounded text-xs text-white">
+                <input type="number" id="newInvQty" placeholder="Cant." class="p-2 bg-black/40 border border-white/10 rounded text-xs text-white" step="any">
             </div>
-            <div id="validationMsg" class="text-[10px] mb-4 hidden">Sincronizando...</div>
             <div class="flex gap-2">
-                <button id="addInvBtn" onclick="addNewInversion()" class="flex-1 bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold text-xs transition-all uppercase">Añadir</button>
+                <button onclick="addNewInversion()" class="flex-1 bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold text-xs transition-all uppercase">Añadir Activo</button>
                 <button onclick="hideInversionModal()" class="flex-1 bg-white/10 p-2 rounded text-xs hover:bg-white/20 transition-all uppercase">Cerrar</button>
             </div>
         </div>
@@ -209,52 +218,49 @@
 
     <script>
         const STORAGE_KEY = "mi_dashboard_directo_v1";
-        const apiKey = ""; 
-
-        // Estado inicial
+        
         let state = {
             name: "¡Hola!",
             bgType: "random",
             bgValue: "",
             privacyMode: false,
+            currency: "usd",
             inversions: [
-                { id: "bitcoin", type: "crypto", label: "Bitcoin", quantity: 0.1, currentPrice: 0, change24h: 0 },
-                { id: "ethereum", type: "crypto", label: "Ethereum", quantity: 1.5, currentPrice: 0, change24h: 0 }
+                { id: "bitcoin", type: "crypto", label: "Bitcoin", quantity: 0.1, currentPrice: 0, change24h: 0, rank: 0 },
+                { id: "ethereum", type: "crypto", label: "Ethereum", quantity: 1.5, currentPrice: 0, change24h: 0, rank: 0 }
             ],
             tasks: [],
             notes: ""
         };
 
-        // --- PERSISTENCIA AUTOMÁTICA ---
+        function formatValue(value) {
+            return new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: state.currency.toUpperCase(),
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
         function loadState() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
-                try {
-                    state = JSON.parse(saved);
-                } catch(e) {
-                    console.error("Error cargando el estado guardado.");
-                }
+                try { 
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                } catch(e) { console.error("Corrupted storage reset."); }
             }
             initApp();
         }
 
         function saveState() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {
-                console.error("Error al guardar: la imagen local podría ser demasiado grande.");
-            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
-        // --- AJUSTES ---
-        function toggleSettings() {
-            document.getElementById('settingsDropdown').classList.toggle('active');
-        }
-
+        function toggleSettings() { document.getElementById('settingsDropdown').classList.toggle('active'); }
+        
         window.addEventListener('click', (e) => {
-            if (!e.target.closest('.relative')) {
-                document.getElementById('settingsDropdown').classList.remove('active');
-            }
+            if (!e.target.closest('.relative')) document.getElementById('settingsDropdown').classList.remove('active');
         });
 
         function updateName(val) {
@@ -263,38 +269,23 @@
             saveState();
         }
 
+        async function updateCurrency(val) {
+            state.currency = val;
+            saveState();
+            await fetchAllPrices();
+        }
+
         function updateBgSelection(val) {
             state.bgType = val;
-            const container = document.getElementById('quickLocalContainer');
-            if (val === 'local') {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-                updateBackground();
-                saveState();
-            }
+            updateBackground();
+            saveState();
         }
 
-        function handleQuickUpload(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    state.bgValue = e.target.result;
-                    state.bgType = 'local';
-                    updateBackground();
-                    saveState();
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // --- INICIALIZACIÓN ---
         async function initApp() {
             document.getElementById('appContent').classList.remove('opacity-0');
             document.getElementById('greeting').innerText = state.name;
-            document.getElementById('userNameEdit').value = (state.name === "¡Hola!") ? "" : state.name;
-            document.getElementById('quickBgType').value = state.bgType;
+            document.getElementById('userNameEdit').value = state.name === "¡Hola!" ? "" : state.name;
+            document.getElementById('currencySelect').value = state.currency || "usd";
             
             updateBackground();
             updateDateTime();
@@ -303,61 +294,105 @@
             document.getElementById('notesArea').value = state.notes || "";
             
             await fetchAllPrices(); 
-            setInterval(fetchAllPrices, 600000); 
+            setInterval(fetchAllPrices, 120000); 
             setInterval(updateDateTime, 30000);
         }
 
-        // --- API PRECIOS ---
         async function fetchAllPrices() {
             const cryptos = state.inversions.filter(i => i.type === 'crypto');
-            if (cryptos.length > 0) {
-                try {
-                    const ids = cryptos.map(c => c.id).join(',');
-                    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-                    const data = await res.json();
-                    state.inversions = state.inversions.map(inv => {
-                        if (inv.type === 'crypto' && data[inv.id]) {
-                            return { ...inv, currentPrice: data[inv.id].usd, change24h: data[inv.id].usd_24h_change || 0 };
-                        }
-                        return inv;
-                    });
-                } catch (e) {}
+            if (cryptos.length === 0) {
+                renderInversions();
+                return;
             }
-            renderInversions();
-            saveState();
+
+            try {
+                const ids = cryptos.map(c => c.id).join(',');
+                const curr = (state.currency || 'usd').toLowerCase();
+                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${curr}&include_24hr_change=true`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                state.inversions = state.inversions.map(inv => {
+                    if (inv.type === 'crypto' && data[inv.id]) {
+                        return { 
+                            ...inv, 
+                            currentPrice: data[inv.id][curr] || 0, 
+                            change24h: data[inv.id][curr + '_24h_change'] || 0 
+                        };
+                    }
+                    return inv;
+                });
+            } catch (e) { 
+                console.error("Error fetching prices:", e); 
+            } finally {
+                renderInversions();
+                saveState();
+            }
         }
 
-        // --- RENDERS ---
         function renderInversions() {
             const grid = document.getElementById('inversionsGrid');
             grid.innerHTML = "";
             let totalPortfolio = 0;
+            
+            state.inversions.forEach(inv => {
+                totalPortfolio += (inv.currentPrice * inv.quantity);
+            });
+
             state.inversions.forEach(inv => {
                 const totalValue = inv.currentPrice * inv.quantity;
-                totalPortfolio += totalValue;
-                const colorClass = inv.change24h >= 0 ? 'text-green-400' : 'text-red-400';
+                const allocation = totalPortfolio > 0 ? (totalValue / totalPortfolio * 100).toFixed(1) : 0;
+                const isPositive = inv.change24h >= 0;
+                const colorClass = isPositive ? 'text-green-400' : 'text-red-400';
+                const trendIcon = isPositive ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
+                
                 const card = document.createElement('div');
-                card.className = "glass p-5 border border-white/5 flex flex-col justify-between hover:border-white/20 transition-all";
+                card.className = "glass p-5 border border-white/5 flex flex-col justify-between hover:bg-white/5 transition-all group";
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[8px] border border-white/20 px-1.5 py-0.5 rounded text-white/40 font-bold uppercase">${inv.type}</span>
-                                <p class="text-[10px] text-white/80 font-bold uppercase tracking-wider">${inv.label}</p>
+                                <span class="text-[8px] bg-white/10 px-1.5 py-0.5 rounded text-white/60 font-bold uppercase">${inv.type}</span>
+                                <p class="text-[11px] text-white font-bold uppercase tracking-wider">${inv.label}</p>
                             </div>
-                            <p class="text-[10px] text-white/30 font-mono">${inv.quantity} UNI</p>
+                            <p class="text-[10px] text-white/30 font-mono">${inv.quantity.toLocaleString()} UNIDADES</p>
                         </div>
-                        <div class="text-right"><span class="${colorClass} text-[10px] font-mono">${inv.change24h.toFixed(2)}%</span></div>
+                        <div class="text-right">
+                            <div class="${colorClass} text-[11px] font-bold flex items-center gap-1 justify-end">
+                                <i class="fas ${trendIcon} text-[9px]"></i>
+                                ${Math.abs(inv.change24h).toFixed(2)}%
+                            </div>
+                            <div class="text-[9px] text-white/20 uppercase font-bold mt-1">${allocation}% MIX</div>
+                        </div>
                     </div>
-                    <div class="mt-4 ${state.privacyMode ? 'hidden-content' : ''}">
-                        <h3 class="text-2xl font-bold font-mono">$${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
-                        <p class="text-[9px] text-white/20 uppercase">Unit: $${inv.currentPrice.toLocaleString()}</p>
+                    
+                    <div class="mt-5 ${state.privacyMode ? 'hidden-content' : ''}">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <h3 class="text-2xl font-bold font-mono tracking-tight">${formatValue(totalValue)}</h3>
+                                <p class="text-[9px] text-white/30 uppercase mt-1">Precio: ${formatValue(inv.currentPrice)}</p>
+                            </div>
+                        </div>
+                        <div class="asset-mix-bar overflow-hidden">
+                            <div class="h-full bg-blue-500/50" style="width: ${allocation}%"></div>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
             });
+
             const totalEl = document.getElementById('totalPortfolioValue');
-            totalEl.innerText = `TOTAL: $${totalPortfolio.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            totalEl.innerText = formatValue(totalPortfolio);
+            
+            const statsEl = document.getElementById('portfolioStats');
+            statsEl.innerText = `${state.inversions.length} ACTIVOS EN SEGUIMIENTO`;
+            
             if (state.privacyMode) totalEl.classList.add('hidden-content');
             else totalEl.classList.remove('hidden-content');
         }
@@ -371,8 +406,12 @@
             state.inversions.forEach((inv, idx) => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center bg-white/5 p-3 rounded border border-white/5";
-                div.innerHTML = `<div><span class="font-bold text-blue-300 text-xs uppercase">${inv.label}</span></div>
-                <button onclick="removeInversion(${idx})" class="text-white/20 hover:text-red-400 transition-colors"><i class="fas fa-trash"></i></button>`;
+                div.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-bold text-blue-300 text-[10px] uppercase">${inv.label} (${inv.id})</span>
+                        <span class="text-[9px] text-white/40">${inv.quantity} ${inv.type}</span>
+                    </div>
+                    <button onclick="removeInversion(${idx})" class="text-white/20 hover:text-red-400 transition-colors p-2"><i class="fas fa-trash-alt"></i></button>`;
                 list.appendChild(div);
             });
         }
@@ -381,11 +420,22 @@
             const type = document.getElementById('newInvType').value;
             const id = document.getElementById('newInvId').value.trim().toLowerCase();
             const label = document.getElementById('newInvLabel').value.trim();
-            const qty = parseFloat(document.getElementById('newInvQty').value);
+            const qtyInput = document.getElementById('newInvQty').value;
+            const qty = parseFloat(qtyInput);
             
             if (id && !isNaN(qty)) {
-                state.inversions.push({ id, type, label: label || id, quantity: qty, currentPrice: 0, change24h: 0 });
-                renderInvEditor();
+                state.inversions.push({ 
+                    id, 
+                    type, 
+                    label: label || id, 
+                    quantity: qty, 
+                    currentPrice: 0, 
+                    change24h: 0 
+                });
+                document.getElementById('newInvId').value = "";
+                document.getElementById('newInvQty').value = "";
+                document.getElementById('newInvLabel').value = "";
+                renderInvEditor(); 
                 await fetchAllPrices();
             }
         }
@@ -400,34 +450,34 @@
 
         function updateBackground() {
             if (state.bgType === 'random') {
-                document.body.style.backgroundImage = `url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1920')`;
+                document.body.style.backgroundImage = `url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1920')`;
                 document.body.style.backgroundColor = "transparent";
-            } else if (state.bgType === 'solid') {
+            } else {
                 document.body.style.backgroundImage = "none";
-                document.body.style.backgroundColor = "#111827";
-            } else if (state.bgType === 'local' && state.bgValue) {
-                document.body.style.backgroundImage = `url(${state.bgValue})`;
-                document.body.style.backgroundColor = "transparent";
+                document.body.style.backgroundColor = "#0a0a0c";
             }
         }
 
         function updateDateTime() {
             const now = new Date();
             const opts = { weekday: 'long', month: 'long', day: 'numeric' };
-            document.getElementById('currentDate').innerText = `${now.toLocaleDateString('es-ES', opts)}`;
+            document.getElementById('currentDate').innerText = now.toLocaleDateString('es-ES', opts);
+            const start = new Date(now.getFullYear(), 0, 1);
+            const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+            document.getElementById('weekNumber').innerText = `Semana ${week}`;
         }
 
         function updateTimeline() {
             const now = new Date();
             const start = new Date(now.getFullYear(), 0, 1);
             const end = new Date(now.getFullYear(), 11, 31);
-            const pct = (((now - start) / (end - start)) * 100).toFixed(4);
+            const pct = (((now - start) / (end - start)) * 100).toFixed(2);
             document.getElementById('yearProgressBar').style.width = `${pct}%`;
-            document.getElementById('yearPercent').innerText = `${pct}%`;
+            document.getElementById('yearPercent').innerText = `${Math.floor(pct)}%`;
             const diff = Math.ceil((end - now) / 86400000);
-            document.getElementById('daysRemaining').innerText = `${diff} días para terminar el año`;
+            document.getElementById('daysRemaining').innerText = `${diff} días restantes en ${now.getFullYear()}`;
         }
-
+        
         function addTask() {
             const input = document.getElementById('newTaskInput');
             if (!input.value.trim()) return;
@@ -440,34 +490,40 @@
             list.innerHTML = "";
             state.tasks.forEach(t => {
                 const li = document.createElement('li');
-                li.className = "flex items-center justify-between bg-white/5 p-3 rounded border border-white/5 hover:bg-white/10 transition-all";
-                li.innerHTML = `<div class="cursor-pointer flex items-center" onclick="toggleTask(${t.id})">
-                <i class="fa-regular ${t.done ? 'fa-check-circle text-green-400' : 'fa-circle text-white/10'} mr-3"></i>
-                <span class="${t.done ? 'line-through opacity-30 text-white/50' : ''}">${t.text}</span></div>
-                <button onclick="deleteTask(${t.id})" class="text-white/10 hover:text-red-400 p-1"><i class="fas fa-times"></i></button>`;
+                li.className = "flex items-center justify-between bg-white/5 p-3 rounded border border-white/5 hover:bg-white/10 transition-all group";
+                li.innerHTML = `
+                    <div class="cursor-pointer flex items-center" onclick="toggleTask(${t.id})">
+                        <i class="fa-regular ${t.done ? 'fa-check-circle text-green-400' : 'fa-circle text-white/20'} mr-3"></i>
+                        <span class="${t.done ? 'line-through opacity-30' : ''}">${t.text}</span>
+                    </div>
+                    <button onclick="deleteTask(${t.id})" class="text-white/0 group-hover:text-white/20 hover:text-red-400 transition-all"><i class="fas fa-times"></i></button>`;
                 list.appendChild(li);
             });
         }
 
-        function toggleTask(id) { const t = state.tasks.find(x => x.id === id); if (t) t.done = !t.done; renderTasks(); saveState(); }
+        function toggleTask(id) { 
+            const t = state.tasks.find(x => x.id === id); 
+            if (t) t.done = !t.done; 
+            renderTasks(); saveState(); 
+        }
         function deleteTask(id) { state.tasks = state.tasks.filter(x => x.id !== id); renderTasks(); saveState(); }
         function saveNotes() { state.notes = document.getElementById('notesArea').value; saveState(); }
 
         function exportData() {
             const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mi_dashboard_backup.json'; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dashboard_backup.json'; a.click();
         }
 
         function importData(e) {
             const file = e.target.files[0];
-            if(!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => { 
-                try {
-                    state = JSON.parse(ev.target.result); 
+                try { 
+                    const imported = JSON.parse(ev.target.result); 
+                    state = { ...state, ...imported };
                     saveState(); 
                     location.reload(); 
-                } catch(err) { alert("Archivo de datos corrupto o inválido."); }
+                } catch(err) { console.error("Import error"); }
             };
             reader.readAsText(file);
         }
