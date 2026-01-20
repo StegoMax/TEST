@@ -83,7 +83,7 @@
                     <h1 id="greeting" class="text-3xl font-bold">¡Hola!</h1>
                     <div class="flex items-center gap-3 mt-1">
                         <p id="currentDate" class="text-white/80 text-sm"></p>
-                        <span id="weekNumber" class="text-[10px] bg-white/10 px-2 py-0.5 rounded border border-white/5 font-mono uppercase tracking-widest text-white/60">Semana 0</span>
+                        <span id="weekNumber" class="text-[20px] bg-white/10 px-2 py-0.5 rounded border border-white/5 font-mono uppercase tracking-widest text-white/60">Semana 0</span>
                     </div>
                 </div>
                 
@@ -170,12 +170,12 @@
         <section class="glass p-6 relative z-0">
             <div class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold">Cartera <span class="text-[10px] opacity-40 font-normal ml-2 uppercase tracking-widest">(Precios Yahoo/Coingecko)</span></h2>
+                    <h2 class="text-xl font-bold">Cartera <span class="text-[10px] opacity-40 font-normal ml-2 uppercase tracking-widest">(Precios Yahoo/Binance/CG)</span></h2>
                     <button onclick="togglePrivacy()" id="privacyBtn" class="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all">
                         <i id="privacyIcon" class="fas fa-eye-slash"></i>
                     </button>
                 </div>
-                <button onclick="showInversionModal()" class="bg-blue-600/60 hover:bg-blue-600 px-4 py-2 rounded text-[10px] font-bold transition-all uppercase tracking-widest"><i class="fas fa-bars mr-1"></i>/button>
+                <button onclick="showInversionModal()" class="bg-blue-600/60 hover:bg-blue-600 px-4 py-2 rounded text-[10px] font-bold transition-all uppercase tracking-widest"><i class="fas fa-bars mr-1"></i></button>
             </div>
             
             <div id="inversionsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -227,11 +227,25 @@
             currency: "eur",
             inversions: [
                 { id: "bitcoin", type: "crypto", label: "Bitcoin", quantity: 0.1, currentPrice: 0, change24h: 0 },
-                { id: "IDR.MC", type: "stock", label: "Indra", quantity: 100, currentPrice: 0, change24h: 0 },
-                { id: "AAPL", type: "stock", label: "Apple", quantity: 5, currentPrice: 0, change24h: 0 }
+                { id: "idr.mc", type: "stock", label: "Indra", quantity: 100, currentPrice: 0, change24h: 0 },
+                { id: "aapl", type: "stock", label: "Apple", quantity: 5, currentPrice: 0, change24h: 0 }
             ],
             tasks: [],
             notes: ""
+        };
+
+        // Diccionario para Binance fallback
+        const CRYPTO_MAP = {
+            'bitcoin': 'BTCUSDT',
+            'ethereum': 'ETHUSDT',
+            'binancecoin': 'BNBUSDT',
+            'solana': 'SOLUSDT',
+            'ripple': 'XRPUSDT',
+            'cardano': 'ADAUSDT',
+            'avalanche-2': 'AVAXUSDT',
+            'polkadot': 'DOTUSDT',
+            'chainlink': 'LINKUSDT',
+            'polygon': 'MATICUSDT'
         };
 
         function formatValue(value) {
@@ -260,48 +274,66 @@
 
         // --- Lógica de Mercado ---
 
-        async function fetchPriceWithProxies(ticker) {
-            let cleanTicker = ticker.trim().replace(/\s+/g, '.').toUpperCase();
-            
-            // Yahoo espera .MC para la Bolsa de Madrid
-            if (cleanTicker.endsWith('.BME')) cleanTicker = cleanTicker.replace('.BME', '.MC');
-
-            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${cleanTicker}?interval=1m&range=1d`;
-            
+        async function fetchWithProxySupport(url) {
             const proxies = [
-                (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
+                (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`
             ];
 
             for (let getProxy of proxies) {
                 try {
-                    const response = await fetch(getProxy(yahooUrl), { method: 'GET', timeout: 5000 });
+                    const response = await fetch(getProxy(url), { method: 'GET', timeout: 5000 });
                     if (!response.ok) continue;
-                    
                     const data = await response.json();
-                    let json = data;
                     
-                    if (typeof data.contents === 'string') {
-                        json = JSON.parse(data.contents);
-                    } else if (data.contents) {
-                        json = data.contents;
+                    if (data && data.contents) {
+                        return JSON.parse(data.contents);
                     }
-
-                    if (json && json.chart && json.chart.result && json.chart.result[0]) {
-                        const meta = json.chart.result[0].meta;
-                        
-                        // Si es .MC forzamos EUR si no viene divisa
-                        let detectedCurrency = meta.currency ? meta.currency.toUpperCase() : (cleanTicker.endsWith('.MC') ? 'EUR' : 'USD');
-                        
-                        return {
-                            price: meta.regularMarketPrice,
-                            currency: detectedCurrency,
-                            change: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100
-                        };
-                    }
+                    return data;
                 } catch (e) {
-                    continue; 
+                    continue;
                 }
+            }
+            return null;
+        }
+
+        // Nueva función: Fetch desde Binance (Menos restrictiva que CoinGecko)
+        async function fetchPriceFromBinance(cryptoId, targetCurrency, exchangeRates) {
+            const symbol = CRYPTO_MAP[cryptoId] || (cryptoId.toUpperCase() + 'USDT');
+            try {
+                const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+                if (!response.ok) return null;
+                const data = await response.json();
+                
+                const priceInUsd = parseFloat(data.lastPrice);
+                const changePct = parseFloat(data.priceChangePercent);
+                
+                // Convertir USD a la moneda del usuario
+                const rateToTarget = exchangeRates['USD'] || 1;
+                return {
+                    price: priceInUsd * rateToTarget,
+                    change: changePct
+                };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function fetchPriceWithProxies(ticker) {
+            let cleanTicker = ticker.trim().replace(/\s+/g, '.').toUpperCase();
+            if (cleanTicker.endsWith('.BME')) cleanTicker = cleanTicker.replace('.BME', '.MC');
+
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${cleanTicker}?interval=1m&range=1d`;
+            const json = await fetchWithProxySupport(yahooUrl);
+
+            if (json && json.chart && json.chart.result && json.chart.result[0]) {
+                const meta = json.chart.result[0].meta;
+                let detectedCurrency = meta.currency ? meta.currency.toUpperCase() : (cleanTicker.endsWith('.MC') ? 'EUR' : 'USD');
+                return {
+                    price: meta.regularMarketPrice,
+                    currency: detectedCurrency,
+                    change: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100
+                };
             }
             return null;
         }
@@ -315,51 +347,51 @@
 
             const targetCurrency = (state.currency || 'eur').toLowerCase();
             
-            // Diccionario para almacenar las tasas de cambio base
-            // Fallbacks realistas por si falla la API de FX
             let exchangeRates = { 
                 "USD": targetCurrency === 'eur' ? 0.92 : 1, 
                 "EUR": targetCurrency === 'usd' ? 1.09 : 1,
                 "GBP": targetCurrency === 'eur' ? 1.17 : 1.27
             };
 
-            // Intentar actualizar tasas de cambio con CoinGecko
+            // Intentar actualizar tasas de cambio para conversiones cruzadas
             try {
-                const fxRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=tether,euro,british-pound-sterling&vs_currencies=${targetCurrency}`);
-                if (fxRes.ok) {
-                    const fxData = await fxRes.json();
+                const fxUrl = `https://api.coingecko.com/api/v3/simple/price?ids=tether,euro,british-pound-sterling&vs_currencies=${targetCurrency}`;
+                const fxData = await fetchWithProxySupport(fxUrl);
+                if (fxData) {
                     if (fxData['tether']) exchangeRates['USD'] = fxData['tether'][targetCurrency];
                     if (fxData['euro']) exchangeRates['EUR'] = fxData['euro'][targetCurrency];
                     if (fxData['british-pound-sterling']) exchangeRates['GBP'] = fxData['british-pound-sterling'][targetCurrency];
                 }
-            } catch (e) { 
-                console.warn("Usando tasas de cambio estáticas de seguridad."); 
-            }
+            } catch (e) { console.warn("Fallback FX activo"); }
 
-            // 1. Criptos
+            // 1. Criptos (Estrategia Dual: CoinGecko -> Binance)
             const cryptos = state.inversions.filter(i => i.type === 'crypto');
-            if (cryptos.length > 0) {
+            for (let inv of cryptos) {
+                let success = false;
+                
+                // Intento A: CoinGecko con Proxy
                 try {
-                    const ids = cryptos.map(c => c.id).join(',');
-                    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${targetCurrency}&include_24hr_change=true`;
-                    const res = await fetch(url);
-                    if (res.ok) {
-                        const data = await res.json();
-                        state.inversions = state.inversions.map(inv => {
-                            if (inv.type === 'crypto' && data[inv.id]) {
-                                return { 
-                                    ...inv, 
-                                    currentPrice: data[inv.id][targetCurrency], 
-                                    change24h: data[inv.id][`${targetCurrency}_24h_change`] || 0 
-                                };
-                            }
-                            return inv;
-                        });
+                    const cryptoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${inv.id}&vs_currencies=${targetCurrency}&include_24hr_change=true`;
+                    const cryptoData = await fetchWithProxySupport(cryptoUrl);
+                    if (cryptoData && cryptoData[inv.id]) {
+                        inv.currentPrice = cryptoData[inv.id][targetCurrency];
+                        inv.change24h = cryptoData[inv.id][`${targetCurrency}_24h_change`] || 0;
+                        success = true;
                     }
-                } catch (e) { console.warn("Error Cripto API"); }
+                } catch (e) { console.warn(`CoinGecko falló para ${inv.id}`); }
+
+                // Intento B: Binance Directo (Si el A falla)
+                if (!success) {
+                    const binanceResult = await fetchPriceFromBinance(inv.id, targetCurrency, exchangeRates);
+                    if (binanceResult) {
+                        inv.currentPrice = binanceResult.price;
+                        inv.change24h = binanceResult.change;
+                        success = true;
+                    }
+                }
             }
 
-            // 2. Acciones
+            // 2. Acciones (Yahoo Finance)
             for (let i = 0; i < state.inversions.length; i++) {
                 const inv = state.inversions[i];
                 if (inv.type === 'stock') {
@@ -368,8 +400,7 @@
                         let originalCurrency = result.currency;
                         let rawPrice = result.price;
 
-                        // CORRECCIÓN PARA GBp (Centavos de libra)
-                        if (originalCurrency === 'GBX' || originalCurrency === 'GBP' && rawPrice > 1000 && inv.id.includes('.L')) {
+                        if (originalCurrency === 'GBX' || (originalCurrency === 'GBP' && rawPrice > 1000 && inv.id.includes('.L'))) {
                              rawPrice = rawPrice / 100;
                              originalCurrency = 'GBP';
                         }
@@ -377,14 +408,9 @@
                         const targetCurrencyUpper = targetCurrency.toUpperCase();
                         let finalPrice = rawPrice;
                         
-                        // Conversión de divisa
                         if (originalCurrency !== targetCurrencyUpper) {
-                            // Si la moneda del activo es USD y queremos EUR: precio * 0.92
-                            // Si la moneda del activo es EUR y queremos USD: precio * 1.09
                             const rate = exchangeRates[originalCurrency];
-                            if (rate) {
-                                finalPrice = rawPrice * rate;
-                            }
+                            if (rate) finalPrice = rawPrice * rate;
                         }
                         
                         state.inversions[i].currentPrice = finalPrice;
@@ -553,7 +579,7 @@
 
         async function addNewInversion() {
             const type = document.getElementById('newInvType').value;
-            const id = document.getElementById('newInvId').value.trim();
+            const id = document.getElementById('newInvId').value.trim().toLowerCase();
             const label = document.getElementById('newInvLabel').value.trim();
             const qty = parseFloat(document.getElementById('newInvQty').value);
             
